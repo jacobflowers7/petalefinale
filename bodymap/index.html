@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PETAL Insights · Warning Sign Body Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #070c11;
+    --surface: #0d1419;
+    --border: rgba(255,255,255,0.08);
+    --text: #f2f4f7;
+    --text-dim: rgba(242,244,247,0.72);
+    --text-muted: rgba(242,244,247,0.42);
+    --accent: #c8a96e;
+    --contrast: #f4e8c8;
+    --alert: #e05c5c;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .scaler {
+    width: 800px; height: 600px;
+    transform-origin: top left;
+    position: absolute;
+    top: 0; left: 0;
+  }
+
+  .canvas {
+    width: 800px; height: 600px;
+    background:
+      radial-gradient(ellipse at 15% 20%, rgba(200,169,110,0.05) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 80%, rgba(224,92,92,0.05) 0%, transparent 50%),
+      linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
+    display: flex;
+    flex-direction: column;
+    font-family: 'Outfit', sans-serif;
+    position: relative;
+  }
+
+  /* TOP BAR */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    height: 40px;
+  }
+  .series-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .top-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .top-instruction {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  /* MAIN */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* BODY MAP — centre */
+  .body-map {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-right: 1px solid var(--border);
+  }
+
+  .body-svg {
+    width: 220px;
+    height: auto;
+  }
+
+  /* ZONE HOVER AREAS — overlaid absolutely */
+  .zone {
+    position: absolute;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: opacity 0.25s;
+  }
+
+  /* INFO PANEL — right */
+  .info-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 20px 14px;
+    position: relative;
+  }
+
+  /* DEFAULT STATE */
+  .default-state {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    height: 100%;
+    gap: 18px;
+    transition: opacity 0.3s;
+  }
+
+  .default-prompt {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  .zone-hint {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hint-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .hint-dot.dvt { background: var(--accent); }
+  .hint-dot.pe  { background: var(--alert); }
+
+  .hint-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  /* DETAIL STATE */
+  .detail-state {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.35s;
+  }
+
+  .detail-state.visible {
+    display: flex;
+    opacity: 1;
+  }
+
+  .detail-type {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .detail-type.dvt { color: var(--accent); }
+  .detail-type.pe  { color: var(--alert); }
+
+  .detail-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.15;
+    margin-bottom: 4px;
+  }
+
+  .detail-full {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 300;
+    font-style: italic;
+    margin-bottom: 14px;
+  }
+  .detail-full.dvt { color: rgba(200,169,110,0.6); }
+  .detail-full.pe  { color: rgba(224,92,92,0.6); }
+
+  .symptoms-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .symptom-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    flex: 1;
+  }
+
+  .symptom-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .symptom-dash {
+    width: 12px;
+    height: 1px;
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+  .dvt .symptom-dash { background: var(--accent); }
+  .pe  .symptom-dash { background: var(--alert); }
+
+  .symptom-text {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--text-dim);
+    line-height: 1.45;
+  }
+
+  .action-block {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    border-left: 2px solid;
+  }
+
+  .action-block.dvt {
+    background: rgba(200,169,110,0.06);
+    border-left-color: var(--accent);
+  }
+
+  .action-block.pe {
+    background: rgba(224,92,92,0.07);
+    border-left-color: var(--alert);
+  }
+
+  .action-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .action-label.dvt { color: var(--accent); }
+  .action-label.pe  { color: var(--alert); }
+
+  .action-text {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  .action-text.dvt { color: var(--text-dim); }
+  .action-text.pe  { color: var(--text); }
+
+  .back-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 5px 10px;
+    cursor: pointer;
+    margin-top: 10px;
+    align-self: flex-start;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .back-btn:hover { color: var(--text-dim); border-color: rgba(255,255,255,0.15); }
+
+  /* Alert border for PE state */
+  .canvas.pe-active {
+    box-shadow: inset 0 0 0 1.5px rgba(224,92,92,0.35);
+  }
+
+  /* BOTTOM BAR */
+  .bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 20px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    height: 30px;
+  }
+  .bottom-note {
+    font-family: 'Outfit', sans-serif;
+    font-size: 9px;
+    font-weight: 300;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  .bottom-brand {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="scaler" id="scaler">
+<div class="canvas" id="canvas">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <span class="series-tag">PETAL · INSIGHTS</span>
+    <span class="top-title">Warning Signs: Where to Look</span>
+    <span class="top-instruction">Tap a zone</span>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- BODY MAP -->
+    <div class="body-map" id="body-map">
+      <svg class="body-svg" id="body-svg" viewBox="0 0 220 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- Ambient glow backgrounds (hidden until active) -->
+        <ellipse id="leg-glow" cx="110" cy="340" rx="55" ry="80" fill="rgba(200,169,110,0)" style="transition: fill 0.4s;"/>
+        <ellipse id="lung-glow" cx="110" cy="165" rx="55" ry="60" fill="rgba(224,92,92,0)" style="transition: fill 0.4s;"/>
+
+        <!-- HEAD -->
+        <circle cx="110" cy="38" r="28" stroke="rgba(242,244,247,0.15)" stroke-width="1.5"/>
+
+        <!-- NECK -->
+        <rect x="100" y="64" width="20" height="18" rx="4" stroke="rgba(242,244,247,0.12)" stroke-width="1.5"/>
+
+        <!-- TORSO -->
+        <rect x="70" y="80" width="80" height="110" rx="8" stroke="rgba(242,244,247,0.15)" stroke-width="1.5"/>
+
+        <!-- ARMS -->
+        <rect x="40" y="84" width="26" height="86" rx="13" stroke="rgba(242,244,247,0.1)" stroke-width="1.5"/>
+        <rect x="154" y="84" width="26" height="86" rx="13" stroke="rgba(242,244,247,0.1)" stroke-width="1.5"/>
+
+        <!-- LUNG ZONE — interactive highlight -->
+        <g id="lung-zone-group" style="cursor:pointer;" onclick="activate('pe')">
+          <!-- Lung shapes inside torso -->
+          <ellipse id="lung-l" cx="94" cy="135" rx="18" ry="28" stroke="rgba(242,244,247,0.18)" stroke-width="1.5" fill="rgba(242,244,247,0.02)" style="transition: stroke 0.3s, fill 0.3s;"/>
+          <ellipse id="lung-r" cx="126" cy="135" rx="18" ry="28" stroke="rgba(242,244,247,0.18)" stroke-width="1.5" fill="rgba(242,244,247,0.02)" style="transition: stroke 0.3s, fill 0.3s;"/>
+          <!-- PE clot dot -->
+          <circle id="pe-dot" cx="96" cy="116" r="4" fill="rgba(224,92,92,0)" style="transition: fill 0.3s;"/>
+          <circle id="pe-ring" cx="96" cy="116" r="8" fill="none" stroke="rgba(224,92,92,0)" stroke-width="1" style="transition: stroke 0.3s;"/>
+          <!-- Invisible tap target -->
+          <rect x="70" y="96" width="80" height="70" fill="transparent"/>
+        </g>
+
+        <!-- LUNG LABEL -->
+        <text id="lung-label" x="110" y="178" font-family="'DM Mono', monospace" font-size="7" fill="rgba(242,244,247,0.25)" letter-spacing="1.5" text-anchor="middle" style="transition: fill 0.3s; pointer-events:none;">CHEST / LUNGS</text>
+
+        <!-- HIP / PELVIS -->
+        <rect x="72" y="192" width="76" height="38" rx="6" stroke="rgba(242,244,247,0.1)" stroke-width="1.5"/>
+
+        <!-- LEG ZONE — interactive highlight -->
+        <g id="leg-zone-group" style="cursor:pointer;" onclick="activate('dvt')">
+          <!-- Left leg -->
+          <rect id="leg-l" x="72" y="232" width="34" height="150" rx="17" stroke="rgba(242,244,247,0.18)" stroke-width="1.5" fill="rgba(242,244,247,0.02)" style="transition: stroke 0.3s, fill 0.3s;"/>
+          <!-- Right leg -->
+          <rect id="leg-r" x="114" y="232" width="34" height="150" rx="17" stroke="rgba(242,244,247,0.18)" stroke-width="1.5" fill="rgba(242,244,247,0.02)" style="transition: stroke 0.3s, fill 0.3s;"/>
+          <!-- DVT clot dot — in left leg vein -->
+          <ellipse id="dvt-dot" cx="89" cy="300" rx="5" ry="8" fill="rgba(200,169,110,0)" style="transition: fill 0.3s;"/>
+          <ellipse id="dvt-ring" cx="89" cy="300" rx="10" ry="14" fill="none" stroke="rgba(200,169,110,0)" stroke-width="1" style="transition: stroke 0.3s;"/>
+          <!-- Invisible tap target -->
+          <rect x="68" y="228" width="84" height="158" fill="transparent"/>
+        </g>
+
+        <!-- LEG LABEL -->
+        <text id="leg-label" x="110" y="400" font-family="'DM Mono', monospace" font-size="7" fill="rgba(242,244,247,0.25)" letter-spacing="1.5" text-anchor="middle" style="transition: fill 0.3s; pointer-events:none;">LEGS / VEINS</text>
+
+        <!-- Pointer lines (hidden until active) -->
+        <line id="lung-line" x1="160" y1="130" x2="192" y2="130" stroke="rgba(224,92,92,0)" stroke-width="1" stroke-dasharray="2,3" style="transition: stroke 0.3s;"/>
+        <line id="leg-line" x1="160" y1="295" x2="192" y2="295" stroke="rgba(200,169,110,0)" stroke-width="1" stroke-dasharray="2,3" style="transition: stroke 0.3s;"/>
+
+      </svg>
+    </div>
+
+    <!-- INFO PANEL -->
+    <div class="info-panel">
+
+      <!-- DEFAULT -->
+      <div class="default-state" id="default-state">
+        <div class="default-prompt">Your body sends clear signals.<br>Most people mistake them<br>for something else.</div>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+          <div class="zone-hint">
+            <div class="hint-dot pe"></div>
+            <span class="hint-text">Chest &amp; lungs — pulmonary embolism</span>
+          </div>
+          <div class="zone-hint">
+            <div class="hint-dot dvt"></div>
+            <span class="hint-text">Legs &amp; veins — deep vein thrombosis</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DVT DETAIL -->
+      <div class="detail-state dvt" id="detail-dvt">
+        <div class="detail-type dvt">Deep Vein Thrombosis · DVT</div>
+        <div class="detail-name">A clot in<br>the leg veins.</div>
+        <div class="detail-full dvt">Clot in the deep veins, usually of the calf or thigh</div>
+        <div class="symptoms-label">Warning signs</div>
+        <div class="symptom-list dvt">
+          <div class="symptom-item">
+            <div class="symptom-dash"></div>
+            <span class="symptom-text">One leg suddenly swells — not both</span>
+          </div>
+          <div class="symptom-item">
+            <div class="symptom-dash"></div>
+            <span class="symptom-text">Pain or tenderness in the calf or thigh</span>
+          </div>
+          <div class="symptom-item">
+            <div class="symptom-dash"></div>
+            <span class="symptom-text">Skin warm, red, or discoloured over the area</span>
+          </div>
+          <div class="symptom-item">
+            <div class="symptom-dash"></div>
+            <span class="symptom-text">Heaviness that feels like tiredness — but in one leg only</span>
+          </div>
+        </div>
+        <div class="action-block dvt">
+          <div class="action-label dvt">Action</div>
+          <div class="action-text dvt">Go to hospital. Do not wait to see if it improves. Early treatment prevents pulmonary embolism.</div>
+        </div>
+        <button class="back-btn" onclick="reset()">← Back</button>
+      </div>
+
+      <!-- PE DETAIL -->
+      <div class="detail-state pe" id="detail-pe">
+        <div class="detail-type pe">Pulmonary Embolism · PE · Emergency</div>
+        <div class="detail-name">A clot in<br>the lungs.</div>
+        <div class="detail-full pe">Clot broken loose from a vein, lodged in lung vessels</div>
+        <div class="symptoms-label">Warning signs</div>
+        <div class="symptom-list pe">
+          <div class="symptom-item">
+            <div class="symptom-dash"></div>
+            <span class="symptom-text">Sudden shortness of breath — at rest, without warning</span>
+          </div>
+          <div class="symptom-item">
+            <div class="symptom-dash"></div>
+            <span class="symptom-text">Sharp chest pain, worse with deep breathing or coughing</span>
+          </div>
+          <div class="symptom-item">
+            <div class="symptom-dash"></div>
+            <span class="symptom-text">Dizziness, rapid or irregular heartbeat</span>
+          </div>
+          <div class="symptom-item">
+            <div class="symptom-dash"></div>
+            <span class="symptom-text">Blood-tinged phlegm or coughing up blood</span>
+          </div>
+        </div>
+        <div class="action-block pe">
+          <div class="action-label pe">Emergency Action</div>
+          <div class="action-text pe">Call family. Get to an emergency department immediately. Do not drive yourself. Time is critical.</div>
+        </div>
+        <button class="back-btn" onclick="reset()">← Back</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <span class="bottom-note">For awareness only. Not a substitute for professional medical evaluation.</span>
+    <span class="bottom-brand">CITYNEWSSERVICE.CN · SHANGHAI CHEST HOSPITAL</span>
+  </div>
+
+</div>
+</div>
+
+<script>
+  function scaleToFit() {
+    const scaler = document.getElementById('scaler');
+    const scaleX = window.innerWidth / 800;
+    const scaleY = window.innerHeight / 600;
+    const scale = Math.min(scaleX, scaleY);
+    scaler.style.transform = 'scale(' + scale + ')';
+    scaler.style.left = ((window.innerWidth - 800 * scale) / 2) + 'px';
+    scaler.style.top  = ((window.innerHeight - 600 * scale) / 2) + 'px';
+  }
+  scaleToFit();
+  window.addEventListener('resize', scaleToFit);
+
+  let current = null;
+
+  function activate(type) {
+    if (current === type) return;
+    current = type;
+
+    // Hide default, hide both details
+    document.getElementById('default-state').style.opacity = '0';
+    document.getElementById('default-state').style.pointerEvents = 'none';
+    document.getElementById('detail-dvt').classList.remove('visible');
+    document.getElementById('detail-pe').classList.remove('visible');
+
+    const canvas = document.getElementById('canvas');
+
+    if (type === 'dvt') {
+      canvas.classList.remove('pe-active');
+
+      // Leg highlight
+      document.getElementById('leg-l').setAttribute('stroke', 'rgba(200,169,110,0.6)');
+      document.getElementById('leg-l').setAttribute('fill', 'rgba(200,169,110,0.05)');
+      document.getElementById('leg-r').setAttribute('stroke', 'rgba(200,169,110,0.2)');
+      document.getElementById('leg-r').setAttribute('fill', 'rgba(200,169,110,0.02)');
+      document.getElementById('dvt-dot').setAttribute('fill', 'rgba(200,169,110,0.8)');
+      document.getElementById('dvt-ring').setAttribute('stroke', 'rgba(200,169,110,0.3)');
+      document.getElementById('leg-glow').setAttribute('fill', 'rgba(200,169,110,0.04)');
+      document.getElementById('leg-label').setAttribute('fill', 'rgba(200,169,110,0.6)');
+      document.getElementById('leg-line').setAttribute('stroke', 'rgba(200,169,110,0.3)');
+
+      // Reset lung
+      document.getElementById('lung-l').setAttribute('stroke', 'rgba(242,244,247,0.18)');
+      document.getElementById('lung-l').setAttribute('fill', 'rgba(242,244,247,0.02)');
+      document.getElementById('lung-r').setAttribute('stroke', 'rgba(242,244,247,0.18)');
+      document.getElementById('lung-r').setAttribute('fill', 'rgba(242,244,247,0.02)');
+      document.getElementById('pe-dot').setAttribute('fill', 'rgba(224,92,92,0)');
+      document.getElementById('pe-ring').setAttribute('stroke', 'rgba(224,92,92,0)');
+      document.getElementById('lung-glow').setAttribute('fill', 'rgba(224,92,92,0)');
+      document.getElementById('lung-label').setAttribute('fill', 'rgba(242,244,247,0.25)');
+      document.getElementById('lung-line').setAttribute('stroke', 'rgba(224,92,92,0)');
+
+      setTimeout(() => {
+        document.getElementById('detail-dvt').classList.add('visible');
+      }, 80);
+
+    } else if (type === 'pe') {
+      canvas.classList.add('pe-active');
+
+      // Lung highlight
+      document.getElementById('lung-l').setAttribute('stroke', 'rgba(224,92,92,0.65)');
+      document.getElementById('lung-l').setAttribute('fill', 'rgba(224,92,92,0.06)');
+      document.getElementById('lung-r').setAttribute('stroke', 'rgba(224,92,92,0.3)');
+      document.getElementById('lung-r').setAttribute('fill', 'rgba(224,92,92,0.03)');
+      document.getElementById('pe-dot').setAttribute('fill', 'rgba(224,92,92,0.85)');
+      document.getElementById('pe-ring').setAttribute('stroke', 'rgba(224,92,92,0.35)');
+      document.getElementById('lung-glow').setAttribute('fill', 'rgba(224,92,92,0.04)');
+      document.getElementById('lung-label').setAttribute('fill', 'rgba(224,92,92,0.6)');
+      document.getElementById('lung-line').setAttribute('stroke', 'rgba(224,92,92,0.3)');
+
+      // Reset leg
+      document.getElementById('leg-l').setAttribute('stroke', 'rgba(242,244,247,0.18)');
+      document.getElementById('leg-l').setAttribute('fill', 'rgba(242,244,247,0.02)');
+      document.getElementById('leg-r').setAttribute('stroke', 'rgba(242,244,247,0.18)');
+      document.getElementById('leg-r').setAttribute('fill', 'rgba(242,244,247,0.02)');
+      document.getElementById('dvt-dot').setAttribute('fill', 'rgba(200,169,110,0)');
+      document.getElementById('dvt-ring').setAttribute('stroke', 'rgba(200,169,110,0)');
+      document.getElementById('leg-glow').setAttribute('fill', 'rgba(200,169,110,0)');
+      document.getElementById('leg-label').setAttribute('fill', 'rgba(242,244,247,0.25)');
+      document.getElementById('leg-line').setAttribute('stroke', 'rgba(200,169,110,0)');
+
+      setTimeout(() => {
+        document.getElementById('detail-pe').classList.add('visible');
+      }, 80);
+    }
+  }
+
+  function reset() {
+    current = null;
+    document.getElementById('canvas').classList.remove('pe-active');
+
+    document.getElementById('default-state').style.opacity = '1';
+    document.getElementById('default-state').style.pointerEvents = 'auto';
+    document.getElementById('detail-dvt').classList.remove('visible');
+    document.getElementById('detail-pe').classList.remove('visible');
+
+    // Reset all SVG
+    ['leg-l','leg-r'].forEach(id => {
+      document.getElementById(id).setAttribute('stroke', 'rgba(242,244,247,0.18)');
+      document.getElementById(id).setAttribute('fill', 'rgba(242,244,247,0.02)');
+    });
+    ['lung-l','lung-r'].forEach(id => {
+      document.getElementById(id).setAttribute('stroke', 'rgba(242,244,247,0.18)');
+      document.getElementById(id).setAttribute('fill', 'rgba(242,244,247,0.02)');
+    });
+    document.getElementById('dvt-dot').setAttribute('fill', 'rgba(200,169,110,0)');
+    document.getElementById('dvt-ring').setAttribute('stroke', 'rgba(200,169,110,0)');
+    document.getElementById('pe-dot').setAttribute('fill', 'rgba(224,92,92,0)');
+    document.getElementById('pe-ring').setAttribute('stroke', 'rgba(224,92,92,0)');
+    document.getElementById('leg-glow').setAttribute('fill', 'rgba(200,169,110,0)');
+    document.getElementById('lung-glow').setAttribute('fill', 'rgba(224,92,92,0)');
+    document.getElementById('leg-label').setAttribute('fill', 'rgba(242,244,247,0.25)');
+    document.getElementById('lung-label').setAttribute('fill', 'rgba(242,244,247,0.25)');
+    document.getElementById('leg-line').setAttribute('stroke', 'rgba(200,169,110,0)');
+    document.getElementById('lung-line').setAttribute('stroke', 'rgba(224,92,92,0)');
+  }
+</script>
+
+</body>
+</html>
